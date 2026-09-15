@@ -29,4 +29,27 @@ def Euro_option_B(S0, u, d, r, T, n, h):
             option_price[j] = (q * option_price[j] + (1 - q) * option_price[j+1]) / R
     return option_price[0]
 
+def American_option_A(S0, u, d, r, T, n, h):
+    stock_price = stock_lattice(S0, u, d, n)
+    R = math.exp(r * T / n)
+    q = (R - d) / (u - d)
+    option_price = [[0] * (n + 1) for _ in range(n + 1)]
+    exercise = [[False] * (n + 1) for _ in range(n + 1)]
+    for i in range(n,-1,-1):
+        for j in range(i+1):
+            if i == n:
+                if h(stock_price[i][j]) > 0 :
+                    exercise[i][j] = True
+                option_price[i][j] = h(stock_price[i][j])
+            else:
+                holding_value = (q * option_price[i+1][j] + (1 - q) * option_price[i+1][j+1]) / R
+                exercise_value = h(stock_price[i][j])
 
+                if holding_value >= exercise_value:
+                    exercise[i][j] = False 
+                    option_price[i][j] = holding_value
+                else:
+                    exercise[i][j] = True
+                    option_price[i][j] = exercise_value
+
+    return option_price, exercise

@@ -3,11 +3,7 @@ import pytest
 from src.payoffs import call, put
 from src.market import Market
 from src.single_period import replicate
-from src.lattice import stock_lattice, Euro_option_A, Euro_option_B
-
-
-
-
+from src.lattice import stock_lattice, Euro_option_A, Euro_option_B, American_option_A
 
 # Case 2 / 3 parameters, shared by most tests below.
 PARAMS = dict(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2)
@@ -62,3 +58,53 @@ def test_both_memory_strategies_agree(n):
     a = Euro_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))[0][0]
     b = Euro_option_B(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))
     assert abs(a - b) < 1e-12
+
+
+def test_case4_american_put_exercises_early():
+    """At the down node the intrinsic value 10 beats the continuation
+    value 9.3168, so the holder exercises and V(1,1) is pinned to 55 - 45."""
+    E, V = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2, h=put(55))
+    assert abs(V[1][1] - 10.0) < 1e-12
+    assert E[1][1] is True
+    assert E[1][0] is False
+    assert E[0][0] is False
+
+
+def test_case4_exercise_region():
+    """Only the down node at k=1 and the in-the-money terminal nodes lie
+    in the exercise region."""
+    E, _ = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2, h=put(55))
+    flagged = {(i, j) for i in range(3) for j in range(i + 1) if E[i][j]}
+    assert flagged == {(1, 1), (2, 1), (2, 2)}
+
+
+@pytest.mark.parametrize("K", [40, 50, 55, 70])
+@pytest.mark.parametrize("n", [1, 2, 5, 20])
+def test_american_put_dominates_european(K, n):
+    """The American holder's choice set contains the European one, so the
+    American price can never be lower."""
+    a = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=put(K))[1][0][0]
+    e = Euro_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=put(K))[0][0]
+    assert a >= e - 1e-12
+
+
+@pytest.mark.parametrize("K", [40, 50, 55, 70])
+@pytest.mark.parametrize("n", [1, 2, 5, 20])
+def test_american_call_equals_european_without_dividends(K, n):
+    """Without dividends early exercise of a call is never optimal, so the
+    two prices must agree exactly, and no interior node may be flagged."""
+    E, V = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))
+    e = Euro_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))[0][0]
+    assert abs(V[0][0] - e) < 1e-12
+    assert not any(E[i][j] for i in range(n) for j in range(i + 1))
+
+
+def test_american_single_step_matches_replication():
+    """With n = 1 the American value is the larger of the replicated
+    European price and the payoff from exercising at inception."""
+    R = math.exp(0.0125)
+    m = Market(S0=20, u=1.2, d=0.9, A0=1, A1=R)
+    h = put(22)
+    _, _, O0, _ = replicate(m, h)
+    _, V = American_option_A(S0=20, u=1.2, d=0.9, r=0.05, T=0.25, n=1, h=h)
+    assert abs(V[0][0] - max(O0, h(20))) < 1e-12
