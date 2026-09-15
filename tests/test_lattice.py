@@ -1,16 +1,12 @@
 import math
 import pytest
+from src.payoffs import call, put
 from src.market import Market
 from src.single_period import replicate
 from src.lattice import stock_lattice, Euro_option_A, Euro_option_B
 
 
-def call(K):
-    return lambda S: max(S - K, 0.0)
 
-
-def put(K):
-    return lambda S: max(K - S, 0.0)
 
 
 # Case 2 / 3 parameters, shared by most tests below.
