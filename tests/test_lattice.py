@@ -63,7 +63,7 @@ def test_both_memory_strategies_agree(n):
 def test_case4_american_put_exercises_early():
     """At the down node the intrinsic value 10 beats the continuation
     value 9.3168, so the holder exercises and V(1,1) is pinned to 55 - 45."""
-    E, V = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2, h=put(55))
+    V, E = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2, h=put(55))
     assert abs(V[1][1] - 10.0) < 1e-12
     assert E[1][1] is True
     assert E[1][0] is False
@@ -73,7 +73,7 @@ def test_case4_american_put_exercises_early():
 def test_case4_exercise_region():
     """Only the down node at k=1 and the in-the-money terminal nodes lie
     in the exercise region."""
-    E, _ = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2, h=put(55))
+    _, E = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=2, h=put(55))
     flagged = {(i, j) for i in range(3) for j in range(i + 1) if E[i][j]}
     assert flagged == {(1, 1), (2, 1), (2, 2)}
 
@@ -83,7 +83,7 @@ def test_case4_exercise_region():
 def test_american_put_dominates_european(K, n):
     """The American holder's choice set contains the European one, so the
     American price can never be lower."""
-    a = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=put(K))[1][0][0]
+    a = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=put(K))[0][0][0]
     e = Euro_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=put(K))[0][0]
     assert a >= e - 1e-12
 
@@ -93,7 +93,7 @@ def test_american_put_dominates_european(K, n):
 def test_american_call_equals_european_without_dividends(K, n):
     """Without dividends early exercise of a call is never optimal, so the
     two prices must agree exactly, and no interior node may be flagged."""
-    E, V = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))
+    V, E = American_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))
     e = Euro_option_A(S0=50, u=1.2, d=0.9, r=0.05, T=0.5, n=n, h=call(K))[0][0]
     assert abs(V[0][0] - e) < 1e-12
     assert not any(E[i][j] for i in range(n) for j in range(i + 1))
@@ -106,5 +106,5 @@ def test_american_single_step_matches_replication():
     m = Market(S0=20, u=1.2, d=0.9, A0=1, A1=R)
     h = put(22)
     _, _, O0, _ = replicate(m, h)
-    _, V = American_option_A(S0=20, u=1.2, d=0.9, r=0.05, T=0.25, n=1, h=h)
+    E, _ = American_option_A(S0=20, u=1.2, d=0.9, r=0.05, T=0.25, n=1, h=h)
     assert abs(V[0][0] - max(O0, h(20))) < 1e-12
