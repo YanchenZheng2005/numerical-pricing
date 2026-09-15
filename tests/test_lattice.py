@@ -106,5 +106,5 @@ def test_american_single_step_matches_replication():
     m = Market(S0=20, u=1.2, d=0.9, A0=1, A1=R)
     h = put(22)
     _, _, O0, _ = replicate(m, h)
-    E, _ = American_option_A(S0=20, u=1.2, d=0.9, r=0.05, T=0.25, n=1, h=h)
+    E, V = American_option_A(S0=20, u=1.2, d=0.9, r=0.05, T=0.25, n=1, h=h)
     assert abs(V[0][0] - max(O0, h(20))) < 1e-12
