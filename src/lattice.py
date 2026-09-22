@@ -2,7 +2,7 @@ import math
 def stock_lattice(S0, u, d, n):
     S = [[0] * (n + 1) for _ in range(n + 1)]
     for i in range(n,-1,-1):
-        for j in range(i+1):
+        for j in range(i + 1):
             S[i][j] = S0 * u ** (i - j) * d ** (j)
     return S
 
